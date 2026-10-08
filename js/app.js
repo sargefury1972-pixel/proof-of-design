@@ -153,16 +153,28 @@
     const scriptLen = Core.buildStampScript({ hashHex: '00'.repeat(32), title: 'A typical title of about forty chars', isoTime: new Date().toISOString() }).toBinary().length
     return Core.estimateFee({ inputs: 1, scriptLen, extraOutputs: svcFee() ? 1 : 0, satsPerKb: state.satsPerKb })
   }
-  function svcFee () { return cfg.serviceFee && cfg.serviceFee.address && cfg.serviceFee.satoshis > 0 ? cfg.serviceFee : null }
+  // Service fee (from config.js) — charged on mainnet stamps only; testnet practice stamps are free.
+  function svcFee () { return state.network !== 'test' && cfg.serviceFee && cfg.serviceFee.address && cfg.serviceFee.satoshis > 0 ? cfg.serviceFee : null }
+  const perStamp = () => typicalFee() + (svcFee() ? svcFee().satoshis : 0)
+  function feeBreakdown () {
+    const fee = typicalFee(); const svc = svcFee()
+    return svc ? `${fmtSats(svc.satoshis)} service fee + about ${fmtSats(fee)} network fee` : `about ${fmtSats(fee)} network fee`
+  }
   function renderCosts () {
     const fee = typicalFee(); const svc = svcFee()
     const total = fee + (svc ? svc.satoshis : 0)
     const f = fiat(total)
-    $('costLine').textContent = `Cost ≈ ${fmtSats(total)}${f ? ' (' + f + ')' : ''}${svc ? ' incl. ' + fmtSats(svc.satoshis) + ' service fee' : ' network fee'} · ${state.network === 'test' ? 'TESTNET' : 'mainnet'}`
-    $('feeSats').textContent = fee
-    $('feeFiat').textContent = fiat(fee) ? ` (${fiat(fee)})` : ''
-    $('fund100k').textContent = fiat(100000) ? fiat(100000).replace('≈ ', '') : '1–2p'
-    renderBalance()
+    const net = state.network === 'test' ? 'TESTNET' : 'mainnet'
+    $('costLine').innerHTML = svc
+      ? `Service fee <b>${fmtSats(svc.satoshis)}</b> + network ≈ ${fmtSats(fee)} = <b>≈ ${fmtSats(total)}</b> per stamp${f ? ' (' + f + ')' : ''} · ${net}`
+      : `Network fee ≈ ${fmtSats(fee)}${f ? ' (' + f + ')' : ''} · ${net}${state.network === 'test' ? ' · no service fee on testnet' : ''}`
+    $('feeLine').innerHTML = svc
+      ? `Each stamp costs <b>${fmtSats(svc.satoshis)}</b> service fee + about <b>${fmtSats(fee)}</b> network fee = <b>≈ ${fmtSats(total)}</b>${f ? ' (' + f + ')' : ''}.`
+      : `Each stamp costs about <b>${fmtSats(fee)}</b> in network fees${f ? ' (' + f + ')' : ''}${state.network === 'test' ? ' (no service fee on testnet)' : ''}.`
+    const n100k = Math.floor(100000 / total).toLocaleString('en-GB')
+    const f100k = fiat(100000) ? ', worth about <b>' + fiat(100000).replace('≈ ', '') + '</b>' : ''
+    $('fundLine').innerHTML = `<b>100,000 sats</b> (0.001 BSV${f100k}) covers about <b>${n100k} stamps</b>.`
+    renderBalance(); renderPayMode()
   }
 
   // ---------- network ----------
@@ -203,8 +215,12 @@
     if (state.balance == null) { $('balSats').textContent = '—'; $('balFiat').textContent = ''; $('balStamps').textContent = ''; return }
     $('balSats').textContent = fmtSats(state.balance)
     $('balFiat').textContent = fiat(state.balance)
-    const per = typicalFee() + (svcFee() ? svcFee().satoshis : 0)
-    $('balStamps').textContent = state.balance > 0 ? `Enough for roughly ${Math.floor(state.balance / per).toLocaleString('en-GB')} stamps.` : 'Empty — send a small amount of BSV to the address above.'
+    const per = perStamp()
+    $('balStamps').textContent = state.balance >= per
+      ? `Enough for roughly ${Math.floor(state.balance / per).toLocaleString('en-GB')} stamps (each ≈ ${fmtSats(per)}: ${feeBreakdown()}).`
+      : state.balance > 0
+        ? `Not enough for a stamp yet. Each stamp needs ≈ ${fmtSats(per)} (${feeBreakdown()}). Send a little more BSV to the address above.`
+        : `Empty. Send a small amount of BSV to the address above. Each stamp needs ≈ ${fmtSats(per)} (${feeBreakdown()}).`
     if (state.balance > cfg.maxRecommendedBalanceSats) $('balStamps').textContent += ' This is more than you need — consider withdrawing some.'
   }
 
@@ -336,12 +352,13 @@
   // ---------- pay mode panel ----------
   function renderPayMode () {
     const el = $('payMode')
-    if (state.wallet) { el.innerHTML = '<b>Your BRC-100 wallet</b> pays and signs each stamp. You\'ll be asked to approve in the wallet.'; return }
+    if (state.wallet) { el.innerHTML = `<b>Your BRC-100 wallet</b> pays and signs each stamp. You'll be asked to approve in the wallet.<br>Per stamp: ${feeBreakdown()}.`; return }
     const key = getKey()
     if (!key) { el.innerHTML = 'No stamping key yet. <button class="linkish" data-goto="key">Set one up</button> — it takes a few seconds and a few pence of BSV.'; return }
     const backed = localStorage.getItem(keySlot() + '.backedUp')
     el.innerHTML = `Stamping key <code class="addr">${esc(keyAddress(key))}</code>` +
       (state.balance != null ? `Balance: <b>${fmtSats(state.balance)}</b> ${fiat(state.balance)}<br>` : '') +
+      `Per stamp: ${feeBreakdown()}.<br>` +
       (backed ? '' : '<span style="color:#C3332B">Not backed up yet.</span> ') + '<button class="linkish" data-goto="key">Manage</button>'
   }
 
@@ -353,7 +370,7 @@
     const isoTime = new Date().toISOString()
     hide($('stampResult'))
     try {
-      let txid; let via; let fee = null; let size = null
+      let txid; let via; let fee = null; let size = null; let svcPaid = 0
       if (state.wallet) {
         busy(btn, true, 'Waiting for wallet approval…')
         const script = Core.buildStampScript({ hashHex: f.hashHex, title, isoTime })
@@ -361,29 +378,30 @@
         const svc = svcFee(); if (svc) outputs.push({ lockingScript: new bsv.P2PKH().lock(svc.address).toHex(), satoshis: svc.satoshis, outputDescription: 'Proof of Design service fee' })
         const r = await state.wallet.createAction({ description: 'Proof of Design: timestamp a design file', outputs, labels: ['proofofdesign'], options: { acceptDelayedBroadcast: false, randomizeOutputs: false } })
         if (!r || !r.txid) throw new Error('The wallet did not return a transaction ID.')
-        txid = r.txid; via = 'your BRC-100 wallet'
+        txid = r.txid; via = 'your BRC-100 wallet'; svcPaid = svc ? svc.satoshis : 0
       } else {
         const key = getKey()
         if (!key) { notice(status, 'You need a funded stamping key first. <button class="linkish" data-goto="key">Set one up →</button>', 'error'); return }
         busy(btn, true, 'Finding funds…')
         const address = keyAddress(key)
         const utxos = await getUtxos(address)
-        if (!utxos.length) { const e = new Error('Your stamping key is empty. Send a few pence of BSV to it first.'); e.code = 'INSUFFICIENT_FUNDS'; throw e }
+        if (!utxos.length) { const e = new Error(`Your stamping key is empty. Send some BSV to it first — each stamp needs about ${fmtSats(perStamp())} (${feeBreakdown()}).`); e.code = 'INSUFFICIENT_FUNDS'; throw e }
         // only fetch sources for as many coins as needed (largest first)
         utxos.sort((a, b) => b.satoshis - a.satoshis)
         const picked = []; let tot = 0
-        for (const u of utxos) { picked.push(u); tot += u.satoshis; if (tot > 5000) break }
+        const enough = Math.max(5000, perStamp() * 2)
+        for (const u of utxos) { picked.push(u); tot += u.satoshis; if (tot > enough) break }
         busy(btn, false); busy(btn, true, 'Signing…')
         const built = await Core.buildStampTx({ privateKey: key, utxos: await withSources(picked), hashHex: f.hashHex, title, isoTime, satsPerKb: state.satsPerKb, serviceFee: svcFee(), network: state.network })
         busy(btn, false); busy(btn, true, 'Broadcasting…')
         const b = await broadcast(built.tx)
-        txid = b.txid; via = b.via; fee = built.fee; size = built.size
+        txid = b.txid; via = b.via; fee = built.fee; size = built.size; svcPaid = built.serviceFee
         recordPending(built, address)
         state.balance = Math.max(0, (state.balance == null ? tot : state.balance) - built.fee - (svcFee() ? svcFee().satoshis : 0))
         renderPayMode()
       }
       hide(status)
-      const entry = { txid, network: state.network, fileName: f.name, fileSize: f.size, hashHex: f.hashHex, title, stampTime: isoTime, via, fee, size }
+      const entry = { txid, network: state.network, fileName: f.name, fileSize: f.size, hashHex: f.hashHex, title, stampTime: isoTime, via, fee, size, serviceFee: svcPaid }
       state.lastStamp = entry
       addHistory(entry)
       showStampResult(entry)
@@ -403,7 +421,7 @@
       ['SHA-256', `<span class="mono">${e.hashHex}</span>`, true],
       ['Transaction ID', `<span class="mono">${e.txid}</span>`, true],
       ['Stamped at', new Date(e.stampTime).toLocaleString('en-GB', { timeZone: 'Europe/London' }) + ' UK'],
-      ['Paid via', esc(e.via) + (e.fee != null ? ` · fee ${fmtSats(e.fee)} ${fiat(e.fee)} · ${e.size} bytes` : '')],
+      ['Paid via', esc(e.via) + (e.fee != null ? ` · network fee ${fmtSats(e.fee)} ${fiat(e.fee)} · ${e.size} bytes` : '') + (e.serviceFee ? ` · service fee ${fmtSats(e.serviceFee)}` : '')],
       ['Network', e.network === 'test' ? 'BSV testnet' : 'BSV mainnet']
     ]
     if (e.title) rows.splice(1, 0, ['Title', esc(e.title)])

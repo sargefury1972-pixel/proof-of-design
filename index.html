@@ -62,7 +62,7 @@
           <button class="primary big" id="stampBtn" disabled>
             <span>Stamp on BSV</span>
           </button>
-          <div class="cost" id="costLine">Network fee ≈ 30 satoshis (a tiny fraction of a penny)</div>
+          <div class="cost" id="costLine">Service fee <b>1,000 sats</b> + network ≈ 32 sats = <b>≈ 1,032 sats</b> per stamp (a tiny fraction of a penny)</div>
         </div>
 
         <div class="notice hidden" id="stampStatus"></div>
@@ -165,7 +165,7 @@
               <button class="segbtn" data-net="test">Testnet</button>
             </div>
           </div>
-          <p class="muted">A small, separate key that lives only in this browser and pays the network fee for each stamp. <b>Never send your main savings here</b> — a few pence of BSV covers thousands of stamps.</p>
+          <p class="muted">A small, separate key that lives only in this browser and pays for each stamp (the network fee plus any service fee shown below). <b>Never send your main savings here</b> — a few pence of BSV covers hundreds of stamps.</p>
 
           <div id="noKey">
             <button class="primary" id="createKey">Create stamping key</button>
@@ -211,8 +211,8 @@
       <aside class="col-side">
         <div class="side-card">
           <div class="side-title">How much to put on it?</div>
-          <p>Each stamp costs about <b id="feeSats">30</b> satoshis in network fees<span id="feeFiat"></span>.</p>
-          <p><b>100,000 sats</b> (0.001 BSV) covers ~3,000 stamps and is worth about <b id="fund100k">1–2p</b>.</p>
+          <p id="feeLine">Each stamp costs <b>1,000 sats</b> service fee + about <b>32 sats</b> network fee = <b>≈ 1,032 sats</b>.</p>
+          <p id="fundLine"><b>100,000 sats</b> (0.001 BSV) covers about <b>96 stamps</b>.</p>
           <p class="muted">Send from any BSV wallet (HandCash, Yours, RockWallet, an exchange…). Only send BSV — not BTC or BCH.</p>
         </div>
         <div class="side-card">

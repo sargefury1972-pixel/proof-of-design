@@ -6,11 +6,12 @@ window.POD_CONFIG = {
   // Users can also switch this in the "Key & funds" tab; this is just the default.
   defaultNetwork: 'main',
 
-  // OPTIONAL: charge a tiny fee per stamp, paid to YOUR OWN BSV address.
-  // Leave address empty ('') to charge nothing. Example: { address: '1YourAddress...', satoshis: 1000 }
-  // 1,000 sats ≈ £0.00014 at Oct 2026 prices — set whatever you like. Only applies to the
-  // built-in stamping-key mode (BRC-100 wallet mode adds it as a normal output too).
-  serviceFee: { address: '', satoshis: 0 },
+  // Service fee charged per stamp, paid to the tool owner's own BSV address.
+  // Set address to '' (or satoshis to 0) to charge nothing.
+  // 1,000 sats ≈ £0.00014 (0.014p) at Oct 2026 prices. Charged on MAINNET stamps only
+  // (testnet practice stamps are free). Paid as a normal P2PKH output in both the
+  // built-in stamping-key mode and BRC-100 wallet mode.
+  serviceFee: { address: '19Rzo9uMgt4Uiv15xyvGQkxvtxXwC1ayxG', satoshis: 1000 },
 
   // Fallback network fee if the live miner policy can't be fetched (satoshis per 1,000 bytes).
   fallbackSatsPerKb: 100,

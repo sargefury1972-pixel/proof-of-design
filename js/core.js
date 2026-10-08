@@ -167,10 +167,13 @@
       const need = estimateFee({ inputs: chosen.length, scriptLen, extraOutputs: svc ? 1 : 0, satsPerKb }) + (svc ? svc.satoshis : 0) + 1
       if (total >= need) break
     }
-    const need = estimateFee({ inputs: chosen.length, scriptLen, extraOutputs: svc ? 1 : 0, satsPerKb }) + (svc ? svc.satoshis : 0) + 1
+    const netFee = estimateFee({ inputs: chosen.length, scriptLen, extraOutputs: svc ? 1 : 0, satsPerKb })
+    const need = netFee + (svc ? svc.satoshis : 0) + 1
     if (total < need) {
-      const err = new Error(`Not enough funds on the stamping key: have ${total} sats, need about ${need} sats.`)
-      err.code = 'INSUFFICIENT_FUNDS'; throw err
+      const n = x => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      const breakdown = svc ? ` (${n(svc.satoshis)} sats service fee + about ${n(netFee)} sats network fee)` : ` (network fee)`
+      const err = new Error(`Not enough funds on the stamping key: have ${n(total)} sats, need about ${n(need)} sats${breakdown}.`)
+      err.code = 'INSUFFICIENT_FUNDS'; err.need = need; err.have = total; throw err
     }
 
     const tx = new bsv.Transaction()
@@ -185,7 +188,7 @@
     await tx.fee(new bsv.SatoshisPerKilobyte(satsPerKb))
     await tx.sign()
     const fee = total - tx.outputs.reduce((s, o) => s + (o.satoshis || 0), 0)
-    return { tx, txid: tx.id('hex'), hex: tx.toHex(), fee, size: tx.toBinary().length, inputsUsed: chosen, address }
+    return { tx, txid: tx.id('hex'), hex: tx.toHex(), fee, serviceFee: svc ? svc.satoshis : 0, size: tx.toBinary().length, inputsUsed: chosen, address }
   }
 
   /** Build a sweep transaction sending everything on the key to `toAddress`. */

@@ -35,7 +35,7 @@ two ways to do that:
    browser data without a backup, the key is gone, along with any BSV on it.
 3. From any BSV wallet (HandCash, Yours, RockWallet, ElectrumSV…), send a **small** amount to
    the address or QR code shown. **100,000 satoshis (0.001 BSV, about 1.4p)** pays for about
-   3,000 stamps. Don't put your savings on it; treat it like a coin jar.
+   96 stamps at the current 1,000-sat service fee (about 3,000 stamps without it). Don't put your savings on it; treat it like a coin jar.
 4. Click **Refresh balance**, then go back to **Stamp**.
 5. **Withdraw all to my wallet** sends everything back to an address of your choice whenever
    you like.
@@ -62,8 +62,11 @@ and tick "testnet transaction" when verifying.
 | BSV price | **£13.91 / $18.40 per BSV**: CoinGecko simple-price API, 8 Oct 2026 ~19:55 BST (WhatsOnChain showed $18.42) |
 | **In pounds** | 31 sats × £13.91 / 100,000,000 ≈ **£0.0000043 (0.00043p) per stamp**. That's about 2,300 stamps per penny. |
 
-The OP_RETURN output itself carries 0 satoshis. The only cost is the miner fee. If you switch on
-a service fee (below), that amount is added on top.
+The OP_RETURN output itself carries 0 satoshis. On top of the miner fee, **this deployment charges a
+service fee of 1,000 sats per mainnet stamp** (≈ £0.00014), paid as a separate output to
+`19Rzo9uMgt4Uiv15xyvGQkxvtxXwC1ayxG`. So a mainnet stamp costs **≈ 1,030 sats in total**, and the page
+shows "Service fee 1,000 sats + network ≈ 32 sats" next to the Stamp button before you stamp.
+Testnet practice stamps carry no service fee.
 
 ## 4. What goes on-chain
 
@@ -78,9 +81,9 @@ transaction on any BSV explorer.
 
 ## 5. Selling it: next steps
 
-1. **Charge a micro-fee per stamp.** In `js/config.js`, set
-   `serviceFee: { address: '1YourOwnBSVAddress…', satoshis: 1000 }`. Each stamp then pays you
-   1,000 sats (~£0.00014). Pick any amount; even 10,000 sats is only ~0.14p to a customer.
+1. **Charge a micro-fee per stamp** *(switched on: 1,000 sats to `19Rzo9uMgt4Uiv15xyvGQkxvtxXwC1ayxG`)*.
+   In `js/config.js`, `serviceFee: { address: '1YourOwnBSVAddress…', satoshis: 1000 }` sets it; use
+   `address: ''` to switch it off. Each mainnet stamp then pays you 1,000 sats (~£0.00014). Pick any amount; even 10,000 sats is only ~0.14p to a customer.
    Payments go straight from the customer's stamping key to your address, with no middleman.
 2. **Host it on your own domain** (e.g. `proofofdesign.co.uk`) via GitHub Pages + a custom
    domain. A branded URL makes certificates look more credible.
