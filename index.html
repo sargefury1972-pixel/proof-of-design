@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of Design — timestamp your work on BSV</title>
+<meta name="description" content="Drop a design file, get permanent, dated proof it existed — recorded on the BSV blockchain. Your file never leaves your device.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='none' stroke='%23E5482D' stroke-width='6'/%3E%3Cpath d='M20 33l8 8 16-18' fill='none' stroke='%23E5482D' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="5" stroke-dasharray="4 3.2"/><circle cx="32" cy="32" r="19" fill="none" stroke="currentColor" stroke-width="3"/><path d="M23 33l6.5 6.5L42 26" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>
+      <div class="wordmark">Proof of Design</div>
+      <div class="tagline">Dated, permanent proof your work existed.</div>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" class="tab active" data-tab="stamp" aria-selected="true">Stamp</button>
+    <button role="tab" class="tab" data-tab="verify">Verify</button>
+    <button role="tab" class="tab" data-tab="key">Key &amp; funds <span id="netBadge" class="badge">MAIN</span></button>
+  </nav>
+</header>
+
+<main>
+  <!-- ======================= STAMP ======================= -->
+  <section id="tab-stamp" class="panel active" role="tabpanel">
+    <div class="grid">
+      <div class="col-main">
+        <label class="drop" id="dropStamp" tabindex="0">
+          <input type="file" id="fileStamp" hidden>
+          <div class="drop-inner">
+            <svg viewBox="0 0 48 48" class="drop-icon" aria-hidden="true"><path d="M24 31V9m0 0l-8 8m8-8l8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 29v7a4 4 0 004 4h24a4 4 0 004-4v-7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <div class="drop-title">Drop your design file here</div>
+            <div class="drop-sub">or <u>browse</u> · any file type · it never leaves your device</div>
+          </div>
+        </label>
+
+        <div class="filecard hidden" id="fileCardStamp">
+          <div class="filerow">
+            <div class="fileicon" id="fileExtStamp">FILE</div>
+            <div class="filemeta">
+              <div class="filename" id="fileNameStamp">—</div>
+              <div class="filesize" id="fileSizeStamp">—</div>
+            </div>
+            <button class="ghost small" id="clearStamp" title="Choose another file">Change</button>
+          </div>
+          <div class="hashblock">
+            <div class="label">SHA-256 fingerprint <span class="hint">computed on your device</span></div>
+            <code class="hash" id="hashStamp">—</code>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="title">Title <span class="hint">optional · public on-chain · max 200 bytes</span></label>
+          <input id="title" type="text" maxlength="200" placeholder="e.g. Brand identity for Studio Nova — concept 3">
+        </div>
+
+        <div class="actions">
+          <button class="primary big" id="stampBtn" disabled>
+            <span>Stamp on BSV</span>
+          </button>
+          <div class="cost" id="costLine">Network fee ≈ 30 satoshis (a tiny fraction of a penny)</div>
+        </div>
+
+        <div class="notice hidden" id="stampStatus"></div>
+
+        <div class="result hidden" id="stampResult">
+          <div class="result-head">
+            <div class="seal">
+              <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="4 3"/><path d="M20 33l8 8 16-18" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="result-title">Stamped.</div>
+              <div class="result-sub">Your fingerprint is on the BSV blockchain. It will be sealed into a block in roughly 10 minutes.</div>
+            </div>
+          </div>
+          <dl class="kv" id="stampKv"></dl>
+          <div class="row-btns">
+            <button class="primary" id="certDownload">Download certificate</button>
+            <button class="ghost" id="certPrint">Open &amp; print / save PDF</button>
+            <a class="ghost btnlink" id="explorerLink" target="_blank" rel="noopener">View on WhatsOnChain ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <aside class="col-side">
+        <div class="side-card">
+          <div class="side-title">How it works</div>
+          <ol class="steps">
+            <li><b>Fingerprint.</b> Your browser calculates the file's SHA-256 — a unique 64-character code. Change one pixel and the code changes completely.</li>
+            <li><b>Stamp.</b> Only that code (plus your optional title) is written to the BSV blockchain, which time-stamps it in a block.</li>
+            <li><b>Prove.</b> Anyone can later drop the same file into <i>Verify</i> with the transaction ID to see it matches — and when it was recorded.</li>
+          </ol>
+        </div>
+        <div class="side-card" id="payCard">
+          <div class="side-title">Paying for stamps</div>
+          <div id="payMode" class="paymode"></div>
+        </div>
+        <div class="side-card">
+          <div class="side-title">Recent stamps <span class="hint">on this device</span></div>
+          <ul class="history" id="history"><li class="muted">No stamps yet.</li></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ======================= VERIFY ======================= -->
+  <section id="tab-verify" class="panel" role="tabpanel">
+    <div class="grid">
+      <div class="col-main">
+        <label class="drop" id="dropVerify" tabindex="0">
+          <input type="file" id="fileVerify" hidden>
+          <div class="drop-inner">
+            <svg viewBox="0 0 48 48" class="drop-icon" aria-hidden="true"><circle cx="21" cy="21" r="12" fill="none" stroke="currentColor" stroke-width="3"/><path d="M30 30l9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <div class="drop-title">Drop the original file</div>
+            <div class="drop-sub">we'll fingerprint it locally and compare it with the blockchain record</div>
+          </div>
+        </label>
+        <div class="filecard hidden" id="fileCardVerify">
+          <div class="filerow">
+            <div class="fileicon" id="fileExtVerify">FILE</div>
+            <div class="filemeta">
+              <div class="filename" id="fileNameVerify">—</div>
+              <div class="filesize" id="fileSizeVerify">—</div>
+            </div>
+            <button class="ghost small" id="clearVerify">Change</button>
+          </div>
+          <div class="hashblock">
+            <div class="label">SHA-256 fingerprint</div>
+            <code class="hash" id="hashVerify">—</code>
+          </div>
+        </div>
+        <div class="field">
+          <label for="txid">Transaction ID (txid)</label>
+          <input id="txid" type="text" spellcheck="false" autocomplete="off" placeholder="64-character transaction ID from the certificate">
+        </div>
+        <div class="actions">
+          <button class="primary big" id="verifyBtn" disabled>Verify</button>
+          <label class="inline"><input type="checkbox" id="verifyTestnet"> testnet transaction</label>
+        </div>
+        <div class="verdict hidden" id="verdict"></div>
+      </div>
+      <aside class="col-side">
+        <div class="side-card">
+          <div class="side-title">What verification proves</div>
+          <p>If the fingerprints match, this exact file existed no later than the <b>block time</b> of that transaction. The block time is set by the BSV network, not by us — so it can't be back-dated.</p>
+          <p class="muted">The tool also recognises other timestamp formats that store a SHA-256 in an OP_RETURN output.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ======================= KEY ======================= -->
+  <section id="tab-key" class="panel" role="tabpanel">
+    <div class="grid">
+      <div class="col-main">
+        <div class="card">
+          <div class="card-head">
+            <h2>Stamping key</h2>
+            <div class="seg" role="group" aria-label="Network">
+              <button class="segbtn active" data-net="main">Mainnet</button>
+              <button class="segbtn" data-net="test">Testnet</button>
+            </div>
+          </div>
+          <p class="muted">A small, separate key that lives only in this browser and pays the network fee for each stamp. <b>Never send your main savings here</b> — a few pence of BSV covers thousands of stamps.</p>
+
+          <div id="noKey">
+            <button class="primary" id="createKey">Create stamping key</button>
+            <button class="ghost" id="importKey">Import a backup (WIF)</button>
+          </div>
+
+          <div id="hasKey" class="hidden">
+            <div class="fund">
+              <div class="qr" id="qr"></div>
+              <div class="fund-info">
+                <div class="label">Send BSV to this address to fund stamping</div>
+                <code class="addr" id="address">—</code>
+                <div class="row-btns tight">
+                  <button class="ghost small" id="copyAddr">Copy address</button>
+                  <button class="ghost small" id="refreshBal">Refresh balance</button>
+                </div>
+                <div class="balance"><span id="balSats">—</span> <span class="muted" id="balFiat"></span></div>
+                <div class="muted small-text" id="balStamps"></div>
+              </div>
+            </div>
+            <div class="warn">
+              <b>Back it up.</b> This key exists only in this browser. Clearing your browser data deletes it (and any BSV on it). Download a backup and keep it somewhere safe — anyone with the backup can spend the funds on it.
+            </div>
+            <div class="row-btns">
+              <button class="primary" id="backupKey">Download backup</button>
+              <button class="ghost" id="withdrawBtn">Withdraw all to my wallet</button>
+              <button class="ghost danger" id="deleteKey">Remove key from this browser</button>
+            </div>
+          </div>
+          <div class="notice hidden" id="keyStatus"></div>
+        </div>
+
+        <div class="card">
+          <h2>Or use your BSV wallet <span class="pill">beta</span></h2>
+          <p class="muted">If you run a wallet that supports the BRC-100 standard (for example BSV Desktop / Metanet Desktop on this computer), the stamp can be paid and signed by your wallet instead — it will ask you to approve each one. Your wallet's keys never touch this page.</p>
+          <div class="row-btns">
+            <button class="ghost" id="connectWallet">Connect BRC-100 wallet</button>
+            <button class="ghost hidden" id="disconnectWallet">Stop using wallet</button>
+          </div>
+          <div class="notice hidden" id="walletStatus"></div>
+        </div>
+      </div>
+      <aside class="col-side">
+        <div class="side-card">
+          <div class="side-title">How much to put on it?</div>
+          <p>Each stamp costs about <b id="feeSats">30</b> satoshis in network fees<span id="feeFiat"></span>.</p>
+          <p><b>100,000 sats</b> (0.001 BSV) covers ~3,000 stamps and is worth about <b id="fund100k">1–2p</b>.</p>
+          <p class="muted">Send from any BSV wallet (HandCash, Yours, RockWallet, an exchange…). Only send BSV — not BTC or BCH.</p>
+        </div>
+        <div class="side-card">
+          <div class="side-title">Privacy</div>
+          <p class="muted">Files are hashed in your browser and never uploaded. The fingerprint, title and time are public on the blockchain forever. Balance lookups and broadcasts go to WhatsOnChain and GorillaPool ARC.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Proof of Design v1 · open-source static page · not legal advice — a timestamp proves a file existed at a time, not who created it.</span>
+</footer>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="row-btns end">
+      <button class="ghost" id="modalCancel">Cancel</button>
+      <button class="primary" id="modalOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/bsv-sdk.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/certificate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
